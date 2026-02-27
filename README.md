@@ -436,7 +436,7 @@ TENSOR_PARALLEL    = 2        # Number of GPUs for tensor parallelism
 
 To reproduce the exact paper results without re-running training:
 
-1. **Download the pre-trained merged models** from HuggingFace Hub (links will be added after de-anonymization)
+1. **Download the pre-trained merged models** from HuggingFace Hub ([aclnlp](https://huggingface.co/aclnlp), [EkcupKadakChai](https://huggingface.co/EkcupKadakChai))
 2. **Use the provided evaluation sets** in `data/eval/`
 3. **Run only the inference and metrics steps:**
 

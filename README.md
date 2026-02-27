@@ -318,9 +318,9 @@ python src/inference/run_inference.py
 **Evaluation data:** Each task uses 40 held-out gold samples from the same source datasets used in training (SQuAD for RAG, XSum for summarization, UltraChat for chat), saved in `data/eval/`.
 
 **Task scoring:**
-- **RAG**: F1 score between model answer and gold answer span
-- **Summarization**: ROUGE-L against the reference summary
-- **Chat**: LLM-as-judge score (1–10 scale, normalized to 0–1 for IPW)
+- **RAG**: NLI Entailment (Context → Generation) (Honovich et al., 2022) and F1 score between model answer and gold answer span
+- **Summarization**: NLI Non-Contradiction and ROUGE-L  (Lin, 2004); against the reference summary
+- **Chat**: LLM-as-a-Judge (GPT-4o) (Zheng et al., 2023) ratings (Zheng et al., 2023) on Helpfulness and Safety (1–10 Likert scale)
 
 Results are saved to `vllm_inference_metrics_tesla_t4_dual.csv`.
 

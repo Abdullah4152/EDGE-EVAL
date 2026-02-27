@@ -1,0 +1,244 @@
+"""
+summary_report.py
+-----------------
+Generate a human-readable summary of all five EdgeEval metrics and a
+combined CSV merging all metrics into one wide table per model variant.
+
+Called automatically by compute_all_metrics.py, or standalone:
+    python src/analysis/summary_report.py --results_dir ./results
+"""
+
+import argparse
+from pathlib import Path
+
+import pandas as pd
+
+
+def generate_summary_report(results: dict, output_dir: Path):
+    """
+    Write HERO_METRICS_SUMMARY.txt summarising all 5 metrics.
+
+    Args:
+        results:    dict produced by compute_all_metrics.run_all()
+        output_dir: where to write the .txt file
+    """
+    report = []
+    report.append("=" * 80)
+    report.append("EDGEVAL — HERO METRICS SUMMARY (72 VARIANTS)")
+    report.append("=" * 80)
+    report.append(
+        "\nMetrics:\n"
+        "  1. Q_ret   — Quantization Fidelity       (Score_INT4 / Score_FP16 × 100%)\n"
+        "  2. N_break — Economic Break-Even          (C_train / (C_api - C_infer))\n"
+        "  3. IPW     — Intelligence Per Watt        (Norm_Score / Energy_per_Req_J)\n"
+        "  4. ρ_sys   — System Density               (Throughput_tok/s / Model_Size_GB)\n"
+        "  5. C_tax   — Cold-Start Tax               (E_load / E_infer)\n"
+    )
+
+    # ── Metric 1: Q_ret ────────────────────────────────────────────────
+    report.append("\n" + "=" * 80)
+    report.append("METRIC 1: Quantization Fidelity (Q_ret)")
+    report.append("=" * 80)
+    report.append("Formula: Q_ret = Score_quantized / Score_FP16 × 100%")
+    report.append("Threshold: ≥ 99.9% = lossless compression\n")
+
+    for family in ["llama", "qwen"]:
+        df = results.get(f"{family}_q_ret", pd.DataFrame())
+        if len(df):
+            report.append(f"{family.capitalize()}:")
+            report.append(f"  Total variants: {len(df)}")
+            passes = len(df[df["Passes_99.9%"] == "Yes"])
+            report.append(f"  Pass 99.9%: {passes}/{len(df)}")
+            for q in ["INT8", "INT4"]:
+                sub = df[df["Quantization"] == q]
+                if len(sub):
+                    report.append(
+                        f"  {q}: Mean={sub['Q_ret_%'].mean():.2f}%  "
+                        f"Min={sub['Q_ret_%'].min():.2f}%"
+                    )
+
+    # ── Metric 2: N_break ──────────────────────────────────────────────
+    import math
+    report.append("\n" + "=" * 80)
+    report.append("METRIC 2: Economic Break-Even (N_break)")
+    report.append("=" * 80)
+    report.append("Formula: N_break = C_train / (C_api_per_req - C_local_per_req)")
+    report.append("ROI Within Hour: N_break < 20 requests\n")
+
+    for family in ["llama", "qwen"]:
+        df = results.get(f"{family}_n_break", pd.DataFrame())
+        if len(df):
+            finite = df[df["N_break"] != math.inf]
+            report.append(f"{family.capitalize()}:")
+            report.append(f"  Total variants: {len(df)}")
+            if len(finite):
+                report.append(f"  Mean N_break:   {finite['N_break'].mean():.0f} requests")
+                report.append(f"  Median N_break: {finite['N_break'].median():.0f} requests")
+                roi = len(df[df["ROI_Within_Hour"] == "Yes"])
+                report.append(f"  ROI within 1 hr: {roi}/{len(df)}")
+
+    # ── Metric 3: IPW ──────────────────────────────────────────────────
+    report.append("\n" + "=" * 80)
+    report.append("METRIC 3: Intelligence Per Watt (IPW)")
+    report.append("=" * 80)
+    report.append("Formula: IPW = Norm_Score(0-1) / Energy_per_Req(J)\n")
+
+    for family in ["llama", "qwen"]:
+        df = results.get(f"{family}_ipw", pd.DataFrame())
+        if len(df):
+            report.append(f"{family.capitalize()}:")
+            report.append(f"  Total variants: {len(df)}")
+            report.append(f"  Mean IPW:   {df['IPW'].mean():.6f}")
+            report.append(f"  Median IPW: {df['IPW'].median():.6f}")
+            top5 = df.nlargest(5, "IPW")
+            report.append("  Top 5 IPW:")
+            for _, row in top5.iterrows():
+                report.append(
+                    f"    {row['Size']}-{row['Quantization']}-{row['Task']}: "
+                    f"{row['IPW']:.6f}"
+                )
+
+    # ── Metric 4: ρ_sys ────────────────────────────────────────────────
+    report.append("\n" + "=" * 80)
+    report.append("METRIC 4: System Density (ρ_sys)")
+    report.append("=" * 80)
+    report.append("Formula: ρ_sys = Throughput(tok/s) / Model_Size(GB)\n")
+
+    for family in ["llama", "qwen"]:
+        df = results.get(f"{family}_rho_sys", pd.DataFrame())
+        if len(df):
+            report.append(f"{family.capitalize()}:")
+            report.append(f"  Mean ρ_sys: {df['rho_sys_tokens_s_per_GB'].mean():.0f} tok/s/GB")
+            int4 = df[df["Quantization"] == "INT4"]
+            for s in ["1B", "7B"]:
+                sub = int4[int4["Size"] == s]
+                if len(sub):
+                    report.append(f"  {s} INT4: {sub['rho_sys_tokens_s_per_GB'].mean():.0f} tok/s/GB")
+            i1 = int4[int4["Size"] == "1B"]["rho_sys_tokens_s_per_GB"].mean()
+            i7 = int4[int4["Size"] == "7B"]["rho_sys_tokens_s_per_GB"].mean()
+            if i7 and i7 > 0:
+                report.append(f"  1B is {i1/i7:.1f}× denser than 7B (INT4)")
+
+    # ── Metric 5: C_tax ────────────────────────────────────────────────
+    report.append("\n" + "=" * 80)
+    report.append("METRIC 5: Cold-Start Tax (C_tax)")
+    report.append("=" * 80)
+    report.append("Formula: C_tax = E_load / E_infer")
+    report.append("Serverless Prohibitive: C_tax > 100×\n")
+
+    for family in ["llama", "qwen"]:
+        df = results.get(f"{family}_c_tax", pd.DataFrame())
+        if len(df):
+            prohibitive = len(df[df["C_tax"] > 100])
+            report.append(f"{family.capitalize()}:")
+            report.append(f"  Mean C_tax:   {df['C_tax'].mean():.0f}×")
+            report.append(f"  Median C_tax: {df['C_tax'].median():.0f}×")
+            report.append(f"  Serverless Prohibitive (>100×): {prohibitive}/{len(df)}")
+
+    report.append("\n" + "=" * 80)
+    report.append("END OF REPORT")
+    report.append("=" * 80)
+
+    report_path = output_dir / "HERO_METRICS_SUMMARY.txt"
+    report_path.write_text("\n".join(report))
+    print(f"\n✓ Summary saved to: {report_path}")
+    print("\n".join(report))
+
+
+def create_combined_metrics(results: dict, output_dir: Path):
+    """
+    Merge all five metric DataFrames into one wide CSV keyed by model variant.
+    Useful for correlation analysis and paper tables.
+    """
+    combined_data = []
+
+    for family in ["llama", "qwen"]:
+        q_ret_df = results.get(f"{family}_q_ret", pd.DataFrame())
+        if len(q_ret_df) == 0:
+            continue
+
+        for _, q_row in q_ret_df.iterrows():
+            model_name = q_row["Model_Name"]
+            size, method, task, quant = (
+                q_row["Size"], q_row["Method"], q_row["Task"], q_row["Quantization"]
+            )
+            record = {
+                "Model_Name":   model_name,
+                "Family":       family.capitalize(),
+                "Size":         size,
+                "Method":       method,
+                "Task":         task,
+                "Quantization": quant,
+                "Q_ret_%":      q_row["Q_ret_%"],
+            }
+
+            def first_match(df_key, filters):
+                df = results.get(f"{family}_{df_key}", pd.DataFrame())
+                if len(df) == 0:
+                    return None
+                mask = pd.Series([True] * len(df), index=df.index)
+                for col, val in filters.items():
+                    mask &= (df[col] == val)
+                sub = df[mask]
+                return sub.iloc[0] if len(sub) > 0 else None
+
+            filt = {"Size": size, "Method": method, "Task": task, "Quantization": quant}
+
+            nb = first_match("n_break", filt)
+            if nb is not None:
+                record["N_break"]          = nb["N_break"]
+                record["Training_Cost_USD"] = nb["Training_Cost_USD"]
+
+            iw = first_match("ipw", filt)
+            if iw is not None:
+                record["IPW"]             = iw["IPW"]
+                record["Energy_per_Req_J"] = iw["Energy_per_Req_J"]
+
+            rh = first_match("rho_sys", filt)
+            if rh is not None:
+                record["rho_sys"]          = rh["rho_sys_tokens_s_per_GB"]
+                record["Throughput_tok_s"] = rh["Throughput_tokens_s"]
+
+            ct = first_match("c_tax", filt)
+            if ct is not None:
+                record["C_tax"]      = ct["C_tax"]
+                record["Load_Time_s"] = ct["Load_Time_s"]
+
+            combined_data.append(record)
+
+    if combined_data:
+        combined_df = pd.DataFrame(combined_data)
+        out_path    = output_dir / "combined_metrics_all_variants.csv"
+        combined_df.to_csv(out_path, index=False)
+        print(f"✓ Combined metrics saved to: {out_path}  ({len(combined_df)} records)")
+
+
+if __name__ == "__main__":
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "metrics"))
+
+    parser = argparse.ArgumentParser(description="Generate summary report from pre-computed metric CSVs")
+    parser.add_argument("--results_dir", type=Path, default=Path("./results"),
+                        help="Directory containing the metric CSVs")
+    args = parser.parse_args()
+
+    d = args.results_dir
+    results = {}
+    for family in ["llama", "qwen"]:
+        for metric, fname in [
+            ("q_ret",   "q_ret.csv"),
+            ("n_break", "n_break.csv"),
+            ("ipw",     "ipw.csv"),
+            ("rho_sys", "rho_sys.csv"),
+            ("c_tax",   "c_tax.csv"),
+        ]:
+            csv_path = d / fname
+            if csv_path.exists():
+                df = pd.read_csv(csv_path)
+                # Filter by family
+                results[f"{family}_{metric}"] = df[
+                    df["Family"].str.lower() == family
+                ].reset_index(drop=True)
+
+    generate_summary_report(results, d)
+    create_combined_metrics(results, d)

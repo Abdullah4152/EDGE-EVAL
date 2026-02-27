@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────
+# EdgeEval — Python dependencies
+# ─────────────────────────────────────────────────────────
+# Install order matters for vLLM compatibility on CUDA 12.1 / dual T4:
+#   1. numpy
+#   2. torch
+#   3. vllm
+#   4. everything else
+
+numpy==1.26.3
+
+# PyTorch (CUDA 12.1 wheel — for dual T4)
+# Install manually: pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+torch==2.4.0
+
+# Inference engine
+vllm==0.6.3.post1
+
+# Fine-tuning stack
+transformers>=4.40.0
+peft>=0.10.0
+bitsandbytes>=0.43.0
+accelerate>=0.28.0
+trl>=0.8.0
+
+# Datasets
+datasets>=2.18.0
+
+# HuggingFace Hub
+huggingface_hub>=0.22.0
+
+# GPU energy monitoring
+pynvml>=11.5.0
+
+# Evaluation metrics
+evaluate>=0.4.1
+rouge_score>=0.1.2
+
+# LLM-as-judge (NVIDIA NIM API)
+openai>=1.14.0
+
+# Data analysis
+pandas>=2.0.0
+numpy>=1.26.0
+
+# Progress bars
+tqdm>=4.66.0

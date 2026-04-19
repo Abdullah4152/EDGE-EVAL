@@ -2,7 +2,6 @@
 
 [![ACL Industry Track](https://img.shields.io/badge/ACL-Industry%20Track-blue)](https://aclanthology.org)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 EdgeEval is a reproducible evaluation framework for measuring the **energy efficiency, economic viability, and task performance** of fine-tuned large language models running on consumer-grade edge hardware (dual Tesla T4 GPUs). It introduces five novel metrics to go beyond accuracy and capture real-world deployment costs.
 

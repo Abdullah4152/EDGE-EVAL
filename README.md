@@ -453,10 +453,29 @@ The pre-computed result CSVs in `results/` already contain all values reported i
 If you use EdgeEval in your research, please cite:
 
 ```bibtex
-@inproceedings{edgeeval2025,
-  title     = {Are Large Language Models Edge-Ready? An Energy-Aware Evaluation Framework},
-  booktitle = {Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Industry Track)},
-  year      = {2025}
+@inproceedings{mohammad-etal-2026-large,
+    title = "Are Large Language Models Economically Viable for Industry Deployment?",
+    author = "Mohammad, Abdullah  and
+      Ray, Sushant Kumar  and
+      Arora, Pushkar  and
+      Ali, Rafiq  and
+      Shabbir, Ebad  and
+      Kashyap, Gautam Siddharth  and
+      Gao, Jiechao  and
+      Naseem, Usman",
+    editor = "Li, Yunyao  and
+      Rehm, Georg  and
+      Tu, Mei",
+    booktitle = "Proceedings of the 64th Annual Meeting of the {A}ssociation for {C}omputational {L}inguistics (Volume 6: Industry Track)",
+    month = jul,
+    year = "2026",
+    address = "San Diego, California, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2026.acl-industry.106/",
+    doi = "10.18653/v1/2026.acl-industry.106",
+    pages = "1533--1540",
+    ISBN = "979-8-89176-394-4",
+    abstract = "Generative AI{---}powered by Large Language Models (LLMs){---}is increasingly deployed in industry across healthcare decision support, financial analytics, enterprise retrieval, and conversational automation, where reliability, efficiency, and cost control are critical. In such settings, models must satisfy strict constraints on energy, latency, and hardware utilization{---}not accuracy alone. Yet prevailing evaluation pipelines remain accuracy-centric, creating a Deployment{--}Evaluation Gap{---}the absence of operational and economic criteria in model assessment. To address this gap, we present EDGE-EVAL{---}a industry-oriented benchmarking framework that evaluates LLMs across their full lifecycle on legacy NVIDIA Tesla T4 GPUs. Benchmarking LLaMA and Qwen variants across three industrial tasks, we introduce five deployment metrics{---}Economic Break-Even (Nbreak), Intelligence-Per-Watt (IP W ), System Density ({\ensuremath{\rho}}sys), Cold-Start Tax (Ctax), and Quantization Fidelity (Qret){---}capturing profitability, energy efficiency, hardware scaling, serverless feasibility, and compression safety. Our results reveal a clear efficiency frontier{---}models in the {\ensuremath{<}} 2B parameter class dominate larger baselines across economic and ecological dimensions. LLaMA-3.2-1B (INT4) achieves ROI break-even in 14 requests (median), delivers 3{\texttimes} higher energy-normalized intelligence than 7B models, and exceeds 6,900 tokens/s/GB under 4-bit quantization. We further uncover an efficiency anomaly{---}while QLoRA reduces memory footprint, it increases adaptation energy by up to 7{\texttimes} for small models{---}challenging prevailing assumptions about quantization-aware training in edge deployment."
 }
 ```
 
